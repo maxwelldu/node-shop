@@ -19,6 +19,7 @@ app.use((req,res,next) => {
   const allowVisitWithoutToken = [
     '/api/user/register',
     '/api/user/auth',
+    '/api/user/checkUserNameUnique'
   ]
   if(allowVisitWithoutToken.indexOf(req.originalUrl) > -1 || req.originalUrl.indexOf('/goods/list')>-1){
     next();

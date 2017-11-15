@@ -5,7 +5,31 @@ const config = require('../config');
 const Joi = require('joi');
 const UserJoi = require('../joi/user');
 
+function __checkUserNameUnique(username, cb) {
+  User.findOne({username}, (err, user) => {
+    if (err) throw err;
+    cb && cb(!!user);
+  })
+}
 const user = {
+  checkUserNameUnique(req, res) {
+    Joi.validate(req.body, UserJoi.checkUserNameUnique)
+    .then(() => {
+      const username = req.body.username;
+      __checkUserNameUnique(username, status => {
+        return res.json({
+          code: 0,
+          status: status ? 1 : 0,
+          msg: status ? '用户名已注册' : '用户名可用'
+        })
+      })
+    }).catch( err => {
+      res.json({
+        code: 5,
+        msg: err.details[0].message
+      })
+    })
+  },
   register(req, res) {
     Joi.validate(req.body, UserJoi.register)
     .then(() => {
@@ -30,10 +54,10 @@ const user = {
           msg: '注册成功'
         })
       })
-    }).catch((error) => {
+    }).catch(err => {
       res.json({
         code: 5,
-        msg: error.details[0].message
+        msg: err.details[0].message
       })
     });
   },
@@ -60,10 +84,10 @@ const user = {
           token
         })
       })
-    }).catch(error => {
+    }).catch(err => {
       res.json({
         code: 5,
-        msg: error.details[0].message
+        msg: err.details[0].message
       })
     });
   },
