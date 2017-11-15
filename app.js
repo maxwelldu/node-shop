@@ -3,9 +3,23 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const morgan = require('morgan');
 const jwt = require('jsonwebtoken');
+const RateLimit = require('express-rate-limit');
 const app = express();
 const config = require('./config.js');
 const user = require('./routers/user');
+
+// app.enable('trust proxy'); // only if you're behind a reverse proxy (Heroku, Bluemix, AWS if you use an ELB, custom Nginx setup, etc)
+const limiter = new RateLimit({
+  windowMs: 15*60*1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  delayMs: 0, // disable delaying - full speed until the max limit is reached
+  handler: function(req, res) {
+    res.status(429).json({ message: "已经超过频率限制" });
+  }
+});
+
+// only apply to requests that begin with /api/
+app.use('/api/', limiter);
 
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: false }))
@@ -20,10 +34,17 @@ app.use((req,res,next) => {
     '/api/user/register',
     '/api/user/auth',
     '/api/user/checkUserNameUnique'
+  ];
+  // 白名单，非白名单的跳过，最后会执行404
+  let whiteList = [
   ]
+  whiteList = allowVisitWithoutToken.concat(whiteList);
   if(allowVisitWithoutToken.indexOf(req.originalUrl) > -1 || req.originalUrl.indexOf('/goods/list')>-1){
     next();
   }else{
+    if (whiteList.indexOf(req.originalUrl) === -1) {
+      next();
+    }
     const token = req.body.token || req.query.token || req.headers['x-access-token'];
     jwt.verify(token, config.SECRET, (err, decode) => {
       if (err) {
@@ -41,7 +62,7 @@ app.use('/api/user', user);
 
 // 最后一个路由处理 404
 app.use((req, res) => {
-  res.json({
+  res.status(404).json({
     code: 404,
     msg: 'Not Found'
   });
