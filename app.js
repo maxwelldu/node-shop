@@ -7,6 +7,7 @@ const RateLimit = require('express-rate-limit');
 const app = express();
 const config = require('./config.js');
 const user = require('./routers/user');
+const cat = require('./routers/cat');
 
 // app.enable('trust proxy'); // only if you're behind a reverse proxy (Heroku, Bluemix, AWS if you use an ELB, custom Nginx setup, etc)
 const limiter = new RateLimit({
@@ -33,10 +34,12 @@ app.use((req,res,next) => {
   const allowVisitWithoutToken = [
     '/api/user/register',
     '/api/user/auth',
-    '/api/user/checkUserNameUnique'
+    '/api/user/checkUserNameUnique',
+    '/api/cat'
   ];
   // 白名单，非白名单的跳过，最后会执行404
   let whiteList = [
+    '/api/cat/add'
   ]
   whiteList = allowVisitWithoutToken.concat(whiteList);
   if(allowVisitWithoutToken.indexOf(req.originalUrl) > -1 || req.originalUrl.indexOf('/goods/list')>-1){
@@ -59,6 +62,7 @@ app.use((req,res,next) => {
 });
 
 app.use('/api/user', user);
+app.use('/api/cat', cat);
 
 // 最后一个路由处理 404
 app.use((req, res) => {
