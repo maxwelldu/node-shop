@@ -5,8 +5,8 @@ const config = require('../config');
 const Joi = require('joi');
 const UserJoi = require('../joi/user');
 
-function __checkUserNameUnique(username, cb) {
-  User.findOne({username}, (err, user) => {
+function __checkUserNameUnique(condition, cb) {
+  User.findOne(condition, (err, user) => {
     if (err) throw err;
     cb && cb(!!user);
   })
@@ -15,8 +15,9 @@ const user = {
   checkUserNameUnique(req, res) {
     Joi.validate(req.body, UserJoi.checkUserNameUnique)
     .then(() => {
-      const username = req.body.username;
-      __checkUserNameUnique(username, status => {
+      const {username, site} = req.body;
+      console.log(site);
+      __checkUserNameUnique({username, site}, status => {
         return res.json({
           code: 0,
           status: status ? 1 : 0,
@@ -33,14 +34,13 @@ const user = {
   register(req, res) {
     Joi.validate(req.body, UserJoi.register)
     .then(() => {
-      let {username, password} = req.body;
+      let {username, password, site} = req.body;
       //:TODO 验证用户名是否已注册
       password = common.generatePassword(password);
       let user = new User({
         username,
         password,
-        lastLoginAt: new Date(),
-        createdAt: new Date()
+        site
       });
       user.save((err, doc) => {
         if (err) {
@@ -64,8 +64,8 @@ const user = {
   auth(req, res) {
     Joi.validate(req.body, UserJoi.auth)
     .then(() => {
-      let {username, password} = req.body
-      User.findOne({ username }, (err, user) => {
+      let {username, password, site} = req.body
+      User.findOne({ username, site }, (err, user) => {
         if (err) throw err;
         if (!user) {
           return res.json({ code: 2, msg: '认证失败，该用户未注册'});
@@ -81,7 +81,10 @@ const user = {
         res.json({
           code: 0,
           msg: '认证成功',
-          token
+          data: {
+            token,
+            site
+          }
         })
       })
     }).catch(err => {
@@ -90,9 +93,6 @@ const user = {
         msg: err.details[0].message
       })
     });
-  },
-  checkUnique(req, res) {
-
   }
 }
 module.exports = user
